@@ -6,7 +6,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const ESLintPlugin = require('eslint-webpack-plugin');
 // webpack插件，用于分析打包后的文件大小
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
-
+// 准备资源的压缩版本，以Content-Encoding为它们提供服务
+const CompressionPlugin = require("compression-webpack-plugin");
 
 module.exports = {
   mode: 'production', // 打包模式 development(开发) production(生产),会使用相应的内置优化
@@ -38,14 +39,16 @@ module.exports = {
         exclude: /node_modules/, // 排除node-modules中的js文件（不处理这些文件）
         use: {
           loader: 'babel-loader',
-          /* options: {
+          options: {
+            cacheDirectory: true,
             presets: ['@babel/preset-env']
-          } */
+          }
         }
       }
     ]
   },
   plugins: [
+    new CompressionPlugin(),
     // 生成打包后的文件大小分析报告
     new BundleAnalyzerPlugin({
       analyzerMode: 'static', // 生成html文件
