@@ -1,4 +1,5 @@
 import axios from 'axios'
+import SuperTask from './superTask.js'
 import { fetchToken } from '../api/index.js'
 import { addAbortController, removeAbortController } from './abortController.js'
 import {
@@ -9,42 +10,11 @@ import {
 } from '../consts/index.js'
 
 
-
-/* 声明一个变量fetchTokenPromise，用来保存刷新token的promise，当fetchTokenPromise不为空时，说明正在刷新token，
-此时不需要再次刷新token，只需要等待fetchTokenPromise执行完毕即可。 */
-let fetchTokenPromise = null
-
-// 重试函数，当请求返回401时，说明accessToken过期，需要用refreshToken去刷新token，刷新成功后再次发起刚才失败的请求
-function retry(config) {
-  return new Promise((resolve, reject)=> {
-    if(!fetchTokenPromise) {
-      fetchTokenPromise= fetchToken()
-    }
-    fetchTokenPromise.then(res=> {
-      localStorage.setItem(LOCAL_ACCESS_KEY, res.data.accessToken)
-      instance(config).then(res=> {
-        resolve(res)
-      }).catch(err=> {
-        reject(err)
-      })
-    }).catch(err=>{
-      console.log('刷新token失败', err)
-      reject()
-    }).finally(() => {
-      fetchTokenPromise = null;
-      console.log('finally')
-    })
-
-  })
-}
-
-
 // 创建一个axios实例
 const instance = axios.create({
   baseURL: BASE_URL,
   timeout: 10 * 1000
 })
-
 
 // 添加请求拦截器
 instance.interceptors.request.use(
@@ -56,7 +26,7 @@ instance.interceptors.request.use(
       config.headers.Authorization = localStorage.getItem(LOCAL_ACCESS_KEY)
     }
     // 是刷新token的请求，请求头添加refreshToken
-    if(url === FETCH_TOKEN_URL) {
+    if (url === FETCH_TOKEN_URL) {
       config.headers.Authorization = localStorage.getItem(LOCAL_REFRESH_KEY)
     }
     // 在发送请求之前做些什么
@@ -79,21 +49,51 @@ instance.interceptors.response.use(
   (error) => {
     // 超出 2xx 范围的状态码都会触发该函数。
     // 对响应错误做点什么
-    if(!axios.isCancel(error)) { // 不是因为取消请求导致的错误，就移除这个控制器
+    if (!axios.isCancel(error)) { // 不是因为取消请求导致的错误，就移除这个控制器
       removeAbortController(error.config)
     }
-    if(error.response.status === 401 && error.config.url !== FETCH_TOKEN_URL) {
+    // 状态码为401，且不是刷新token的请求，去刷新token，并且重发该失败的请求
+    if (error.response.status === 401 && error.config.url !== FETCH_TOKEN_URL) {
       return retry(error.config)
     }
     return Promise.reject(error);
   }
 );
 
+
+/* 声明一个变量fetchTokenPromise，用来保存刷新token的promise，当fetchTokenPromise不为空时，说明正在刷新token，
+此时不需要再次刷新token，只需要等待fetchTokenPromise执行完毕即可。 */
+let fetchTokenPromise = null
+
+// 重试函数，当请求返回401时，说明accessToken过期，需要用refreshToken去刷新token，刷新成功后再次发起刚才失败的请求
+function retry(config) {
+  return new Promise((resolve, reject) => {
+    if (!fetchTokenPromise) {
+      fetchTokenPromise = fetchToken()
+    }
+    fetchTokenPromise.then(res => {
+      localStorage.setItem(LOCAL_ACCESS_KEY, res.data.accessToken)
+      instance(config).then(resolve,reject)
+    }).catch(err => {
+      console.log('重试失败', err)
+      reject()
+    }).finally(() => {
+      fetchTokenPromise = null;
+    })
+
+  })
+}
+
+// 最大并发数控制在3个
+const superTask = new SuperTask(3)
+
+
+
 const get = (url, options) => {
-  return instance.get(url, options)
+  return superTask.add(() => instance.get(url, options))
 }
 const post = (url, data, options) => {
-  return instance.post(url, data, options)
+  return superTask.add(() => instance.post(url, data, options))
 }
 
 export {

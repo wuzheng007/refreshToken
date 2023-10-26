@@ -11,6 +11,7 @@ const CompressionPlugin = require("compression-webpack-plugin");
 
 module.exports = {
   mode: 'production', // 打包模式 development(开发) production(生产),会使用相应的内置优化
+  // devtool: 'source-map', // 源码映射
   // 入口文件
   entry: './src/main.js',
   // 输出

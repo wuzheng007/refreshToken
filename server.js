@@ -17,7 +17,7 @@ let accessToken = null
 let refreshToken = null
 
 // 普通 token，10s过期
-const ACCESS_EXPIRES = 10 * 1000
+const ACCESS_EXPIRES = 30 * 1000
 // 刷新 token，30s过期
 const REFRESH_EXPIRES = 60 * 1000
 

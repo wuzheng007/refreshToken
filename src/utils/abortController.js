@@ -1,3 +1,5 @@
+/* =======================这个文件的代码是用来取消重复请求用的============== */
+
 // 一个添加了一些安全性的查询字符串解析和字符串化库，可以把对象转成字符串，也可以把字符串转成对象
 import qs from 'qs'
 
@@ -19,7 +21,7 @@ function generateReqKey(config) {
  * @Date 2023-10-21 19:34:42
  * @introduction 向abortControllerMap中添加一个控制器
  * @description 传入一个配置对象config，先移除之前的控制器，再向abortControllerMap中添加一个控制器
- * @param {Object} config axiso的配置对象config
+ * @param {Object} config axios的配置对象config
  */
 function addAbortController(config) {
   removeAbortController(config)

@@ -43,7 +43,6 @@ export class AxiosRetry {
             }
             this.#fetchNewTokenPromise
               .then(() => {
-                console.log('===============================')
                 // 获取token成功后，重新执行请求
                 requestFn().then(resolve).catch(reject);
               })
